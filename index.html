@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home Weather Example</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 700px;
+        margin: 40px auto;
+        padding: 20px;
+        background: #f4f4f8;
+      }
+      .panel {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 12px 0;
+      }
+      select, button {
+        padding: 10px 12px;
+        font-size: 1rem;
+      }
+      p {
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <h1>Home Weather / Time / Location</h1>
+
+      <div class="controls">
+        <select id="locationSelect"></select>
+        <button id="randomLocationBtn" type="button">Random City</button>
+        <button id="useMyLocationBtn" type="button">Use My Location</button>
+      </div>
+
+      <p id="homeGreetingLabel">Welcome!</p>
+      <p id="homeLocationLabel">Location: --</p>
+      <p id="homeTimeLabel">Time: --:--:--</p>
+      <p id="homeDateLabel">Date: --</p>
+      <p id="homeWeatherLabel">Weather: --</p>
+    </div>
+
+    <script src="./home-weather.js"></script>
+    <script>
+      HomeWeather.init({ initialIndex: 0 });
+      HomeWeather.setUserName("Alex");
+    </script>
+  </body>
+</html>

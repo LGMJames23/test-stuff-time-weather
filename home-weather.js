@@ -113,7 +113,7 @@
     { name: "Johannesburg, South Africa", latitude: -26.2041, longitude: 28.0473, timeZone: "Africa/Johannesburg" }
   ];
 
-  let activeLocation = cityOptions[0];
+  let activeLocation = cityOptions[0] || null;
   let clockTimer = null;
   let userName = "Guest";
 
@@ -140,6 +140,18 @@
     };
   }
 
+  function findCityIndex(location) {
+    if (!location || !cityOptions.length) return -1;
+    const normalized = normalizeLocation(location);
+    if (!normalized) return -1;
+
+    return cityOptions.findIndex((city) => {
+      return city.name === normalized.name &&
+        Number(city.latitude) === Number(normalized.latitude) &&
+        Number(city.longitude) === Number(normalized.longitude);
+    });
+  }
+
   function readSavedLocation() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -160,7 +172,10 @@
     }
   }
 
-  function el(id) { return document.getElementById(id); }
+  function el(id) {
+    if (!document || !id) return null;
+    return document.getElementById(id);
+  }
 
   function populateLocationSelect() {
     if (!locationSelect) return;
@@ -171,6 +186,21 @@
       option.textContent = city.name;
       locationSelect.appendChild(option);
     });
+    if (!locationSelect.value && cityOptions.length > 0) {
+      locationSelect.value = "0";
+    }
+  }
+
+  function setSelectedLocationValue(location) {
+    if (!locationSelect || !cityOptions.length) return;
+    const cityIndex = findCityIndex(location);
+    if (cityIndex >= 0) {
+      locationSelect.value = String(cityIndex);
+      return;
+    }
+    if (!locationSelect.value) {
+      locationSelect.value = "0";
+    }
   }
 
   function formatClock(date, timeZone) {
@@ -220,16 +250,25 @@
       51: "Light Drizzle",
       53: "Drizzle",
       55: "Heavy Drizzle",
+      56: "Freezing Drizzle",
+      57: "Freezing Drizzle",
       61: "Light Rain",
       63: "Rain",
       65: "Heavy Rain",
+      66: "Freezing Rain",
+      67: "Freezing Rain",
       71: "Light Snow",
       73: "Snow",
       75: "Heavy Snow",
+      77: "Snow Grains",
       80: "Rain Showers",
       81: "Rain Showers",
       82: "Heavy Rain Showers",
-      95: "Thunderstorm"
+      85: "Light Snow Showers",
+      86: "Heavy Snow Showers",
+      95: "Thunderstorm",
+      96: "Thunderstorm",
+      99: "Thunderstorm"
     };
     return weatherCodes[code] || "Unknown";
   }
@@ -237,18 +276,24 @@
   async function updateWeather(location) {
     if (!homeWeatherLabel) return;
 
+    const targetLocation = normalizeLocation(location) || activeLocation;
+    if (!targetLocation) {
+      homeWeatherLabel.textContent = "Weather: unavailable";
+      return;
+    }
+
     const weatherUrl =
-      `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}` +
-      `&longitude=${location.longitude}&current_weather=true&timezone=auto`;
+      `https://api.open-meteo.com/v1/forecast?latitude=${targetLocation.latitude}` +
+      `&longitude=${targetLocation.longitude}&current_weather=true&timezone=auto`;
     homeWeatherLabel.textContent = "Weather: Loading...";
 
     try {
       const response = await fetch(weatherUrl);
       if (!response.ok) throw new Error("Weather request failed");
       const data = await response.json();
-      const current = data.current_weather || data.current;
-      const tempC = current?.temperature ?? current?.temperature_2m;
-      const code = current?.weathercode ?? current?.weather_code;
+      const current = data.current_weather || data.current || {};
+      const tempC = current.temperature ?? current.temperature_2m ?? current.temp ?? null;
+      const code = current.weathercode ?? current.weather_code ?? null;
       const weather = weatherTextFromCode(code);
 
       if (typeof tempC === "number") {
@@ -283,6 +328,7 @@
 
     activeLocation = normalized;
     saveLocation(normalized);
+    setSelectedLocationValue(normalized);
     startClock(normalized);
     updateWeather(normalized);
     if (homeLocationLabel) {
@@ -312,7 +358,7 @@
       },
       () => {
         if (homeLocationLabel) homeLocationLabel.textContent = "Location: Permission denied or unavailable";
-        setActiveLocation(activeLocation);
+        setActiveLocation(activeLocation || cityOptions[0]);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -350,23 +396,23 @@
       homeGreetingLabel = el(opts.homeGreetingLabelId || "homeGreetingLabel");
 
       populateLocationSelect();
-      attachListeners();
+
+      if (locationSelect && !locationSelect.dataset.homeWeatherBound) {
+        attachListeners();
+        locationSelect.dataset.homeWeatherBound = "true";
+      }
 
       const savedLocation = readSavedLocation();
       const initialIndex = typeof opts.initialIndex === "number" ? opts.initialIndex : 0;
-      const initialLocation = savedLocation || cityOptions[initialIndex] || cityOptions[0];
+      const fallbackLocation = cityOptions[initialIndex] || cityOptions[0];
+      const initialLocation = savedLocation || fallbackLocation;
 
       if (locationSelect) {
-        const savedIndex = cityOptions.findIndex((city) => {
-          return city.name === initialLocation.name &&
-            Number(city.latitude) === Number(initialLocation.latitude) &&
-            Number(city.longitude) === Number(initialLocation.longitude);
-        });
-
+        const savedIndex = findCityIndex(initialLocation);
         if (savedIndex >= 0) {
           locationSelect.value = String(savedIndex);
-        } else {
-          locationSelect.value = String(initialIndex);
+        } else if (fallbackLocation) {
+          locationSelect.value = String(initialIndex >= 0 ? initialIndex : 0);
         }
       }
 

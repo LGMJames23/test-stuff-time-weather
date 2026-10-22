@@ -159,7 +159,8 @@ function saveLocation(location) {
   if (!normalized) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-  } catch {
+  }
+    catch {
     // ignore storage failures
   }
 }
@@ -290,6 +291,7 @@ function setActiveLocation(location) {
   saveLocation(normalized);
   startClock(normalized);
   updateWeather(normalized);
+  homeLocationLabel.textContent = `Location: ${normalized};
 }
 
   async function useCurrentLocation() {

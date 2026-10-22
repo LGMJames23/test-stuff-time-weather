@@ -1,6 +1,3 @@
-// Minimal standalone Home/Weather/Time/Location module
-// Usage: include this script in a page that has the DOM ids used below, then call HomeWeather.init()
-
 (function (window, document) {
   const STORAGE_KEY = "homeWeather.activeLocation";
   const cityOptions = [
@@ -130,41 +127,38 @@
   let homeGreetingLabel;
 
   function normalizeLocation(location) {
-  if (!location || typeof location !== "object") return null;
-  const latitude = Number(location.latitude);
-  const longitude = Number(location.longitude);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+    if (!location || typeof location !== "object") return null;
+    const latitude = Number(location.latitude);
+    const longitude = Number(location.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
 
-  return {
-    name: String(location.name || "Custom Location"),
-    latitude,
-    longitude,
-    timeZone: String(location.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC")
-  };
-}
-
-
-function readSavedLocation() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return normalizeLocation(JSON.parse(raw));
-  } catch {
-    return null;
+    return {
+      name: String(location.name || "Custom Location"),
+      latitude,
+      longitude,
+      timeZone: String(location.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC")
+    };
   }
-}
 
-function saveLocation(location) {
-  const normalized = normalizeLocation(location);
-  if (!normalized) return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+  function readSavedLocation() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return normalizeLocation(JSON.parse(raw));
+    } catch {
+      return null;
+    }
   }
-    catch {
-    // ignore storage failures
-  }
-}
 
+  function saveLocation(location) {
+    const normalized = normalizeLocation(location);
+    if (!normalized) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    } catch {
+      // ignore storage failures
+    }
+  }
 
   function el(id) { return document.getElementById(id); }
 
@@ -283,16 +277,18 @@ function saveLocation(location) {
     clockTimer = setInterval(tick, 1000);
   }
 
-function setActiveLocation(location) {
-  const normalized = normalizeLocation(location);
-  if (!normalized) return;
+  function setActiveLocation(location) {
+    const normalized = normalizeLocation(location);
+    if (!normalized) return;
 
-  activeLocation = normalized;
-  saveLocation(normalized);
-  startClock(normalized);
-  updateWeather(normalized);
-  homeLocationLabel.textContent = `Location: ${normalized};
-}
+    activeLocation = normalized;
+    saveLocation(normalized);
+    startClock(normalized);
+    updateWeather(normalized);
+    if (homeLocationLabel) {
+      homeLocationLabel.textContent = `Location: ${normalized.name}`;
+    }
+  }
 
   async function useCurrentLocation() {
     if (!navigator.geolocation) {
@@ -361,7 +357,12 @@ function setActiveLocation(location) {
       const initialLocation = savedLocation || cityOptions[initialIndex] || cityOptions[0];
 
       if (locationSelect) {
-        const savedIndex = cityOptions.findIndex((city) => city.name === initialLocation.name && Number(city.latitude) === Number(initialLocation.latitude) && Number(city.longitude) === Number(initialLocation.longitude));
+        const savedIndex = cityOptions.findIndex((city) => {
+          return city.name === initialLocation.name &&
+            Number(city.latitude) === Number(initialLocation.latitude) &&
+            Number(city.longitude) === Number(initialLocation.longitude);
+        });
+
         if (savedIndex >= 0) {
           locationSelect.value = String(savedIndex);
         } else {
@@ -382,7 +383,3 @@ function setActiveLocation(location) {
 
   window.HomeWeather = HomeWeather;
 })(window, document);
-  window.addEventListenet("DOMContentLoaded", function(){
-    HomeWeather.init({
-    });
-  });
